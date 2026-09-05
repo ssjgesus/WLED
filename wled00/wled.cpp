@@ -991,6 +991,9 @@ void WLED::handleConnection()
   if (!interfacesInited || forceReconnect) {
     forceReconnect = false;
     showWelcomePage = false;
+#ifdef WLED_ENABLE_WEBSOCKETS
+    ws.onEvent(wsEvent);
+#endif
     initInterfaces();
     userConnected();
     UsermodManager::connected();
