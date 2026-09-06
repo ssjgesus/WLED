@@ -39,13 +39,18 @@ jobs:
         run: cp tools/esp32p4-ip101.ini platformio_override.ini
       - name: Compile P4 firmware
         run: pio run -e esp32p4_ip101
-      - name: Upload P4 firmware
+      - name: Stage ESPConnect flash files
+        run: |
+          mkdir -p espconnect
+          cp .pio/build/esp32p4_ip101/bootloader.bin espconnect/bootloader-0x2000.bin
+          cp .pio/build/esp32p4_ip101/partitions.bin espconnect/partitions-0x8000.bin
+          cp .pio/build/esp32p4_ip101/firmware.bin espconnect/firmware-0x10000.bin
+      - name: Upload ESPConnect flash files
         uses: actions/upload-artifact@v4
         with:
-          name: esp32p4-ip101-firmware
-          path: |
-            .pio/build/esp32p4_ip101/firmware.bin
-            .pio/build/esp32p4_ip101/firmware.elf
+          name: WLED-ESP32-P4-IP101-${{ github.sha }}
+          path: espconnect/
           if-no-files-found: error
+          retention-days: 30
       - name: Compile classic ESP32 regression target
         run: pio run -e esp32dev
