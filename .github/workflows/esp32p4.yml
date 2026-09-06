@@ -2,9 +2,7 @@ name: Build ESP32-P4 firmware
 
 on:
   push:
-    branches:
-      - main
-      - esp32p4-ip101-ethernet
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -12,7 +10,7 @@ permissions:
 
 jobs:
   build:
-    name: ESP32-P4 16 MB (${{ github.ref_name }})
+    name: ESP32-P4 16 MB
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +30,11 @@ jobs:
           npm ci
           pip install -r requirements.txt
 
-      - name: Build generic 360 MHz ESP32-P4 firmware
+      - name: Configure generic 360 MHz ESP32-P4
+        run: |
+          printf '%s\n' '[env:esp32p4_16MB]' 'board = esp32-p4' > platformio_override.ini
+
+      - name: Build ESP32-P4 firmware
         run: pio run -e esp32p4_16MB
 
       - name: Stage ESPConnect flash files
@@ -45,7 +47,7 @@ jobs:
       - name: Upload ESPConnect flash files
         uses: actions/upload-artifact@v4
         with:
-          name: WLED-ESP32-P4-16MB-${{ github.ref_name }}-${{ github.sha }}
+          name: WLED-ESP32-P4-16MB-${{ github.sha }}
           path: espconnect/
           if-no-files-found: error
           retention-days: 30
