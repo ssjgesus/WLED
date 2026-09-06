@@ -1,0 +1,51 @@
+name: Build ESP32-P4 firmware
+
+on:
+  push:
+    branches:
+      - main
+      - esp32p4-ip101-ethernet
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ESP32-P4 16 MB (${{ github.ref_name }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install build dependencies
+        run: |
+          npm ci
+          pip install -r requirements.txt
+
+      - name: Build generic 360 MHz ESP32-P4 firmware
+        run: pio run -e esp32p4_16MB
+
+      - name: Stage ESPConnect flash files
+        run: |
+          mkdir -p espconnect
+          cp .pio/build/esp32p4_16MB/bootloader.bin espconnect/bootloader-0x2000.bin
+          cp .pio/build/esp32p4_16MB/partitions.bin espconnect/partitions-0x8000.bin
+          cp .pio/build/esp32p4_16MB/firmware.bin espconnect/firmware-0x10000.bin
+
+      - name: Upload ESPConnect flash files
+        uses: actions/upload-artifact@v4
+        with:
+          name: WLED-ESP32-P4-16MB-${{ github.ref_name }}-${{ github.sha }}
+          path: espconnect/
+          if-no-files-found: error
+          retention-days: 30
