@@ -1,0 +1,56 @@
+name: ESP32-P4 IP101 validation
+on:
+  push:
+    branches: [esp32p4-ip101-ethernet]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Build and test firmware
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Cache PlatformIO downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: p4-ip101-${{ runner.os }}-${{ hashFiles('tools/esp32p4-ip101.ini', 'platformio.ini') }}
+      - name: Install build tools
+        run: |
+          npm ci
+          pip install platformio==6.1.19
+      - name: Test and build web assets
+        run: |
+          npm test
+          npm run build
+      - name: Configure IP101 build
+        run: cp tools/esp32p4-ip101.ini platformio_override.ini
+      - name: Compile P4 firmware
+        run: pio run -e esp32p4_ip101
+      - name: Stage ESPConnect flash files
+        run: |
+          mkdir -p espconnect
+          cp .pio/build/esp32p4_ip101/bootloader.bin espconnect/bootloader-0x2000.bin
+          cp .pio/build/esp32p4_ip101/partitions.bin espconnect/partitions-0x8000.bin
+          cp .pio/build/esp32p4_ip101/firmware.bin espconnect/firmware-0x10000.bin
+      - name: Upload ESPConnect flash files
+        uses: actions/upload-artifact@v4
+        with:
+          name: WLED-ESP32-P4-IP101-${{ github.sha }}
+          path: espconnect/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Compile classic ESP32 regression target
+        run: pio run -e esp32dev
