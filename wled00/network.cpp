@@ -317,7 +317,9 @@ bool initEthernet()
   }
 
   // https://github.com/wled/WLED/issues/5247
-  if (multiWiFi[0].staticIP != (uint32_t)0x00000000 && multiWiFi[0].staticGW != (uint32_t)0x00000000) {
+  // Compare IPAddress objects explicitly. On ESP32-P4, comparing to integer zero is
+  // ambiguous and can select IPAddress::operator==(const uint8_t*) with a null pointer.
+  if (multiWiFi[0].staticIP != IPAddress(0, 0, 0, 0) && multiWiFi[0].staticGW != IPAddress(0, 0, 0, 0)) {
     ETH.config(multiWiFi[0].staticIP, multiWiFi[0].staticGW, multiWiFi[0].staticSN, dnsAddress);
   } else {
     ETH.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
