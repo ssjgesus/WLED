@@ -12,16 +12,6 @@
 
 #define FS_BUFSIZE 256
 
-// Filesystem usage stats, refreshed by updateFSInfo() - previously WLED_GLOBAL,
-// a leftover from when all state lived in one big extern block regardless of
-// who used it. json.cpp only ever reads these (status report), so it gets
-// by-value getters rather than a mutable reference - an accidental write from
-// outside this file is now a build error instead of a silent bug.
-static size_t fsBytesUsed = 0;
-static size_t fsBytesTotal = 0;
-size_t getFsBytesUsed()  { return fsBytesUsed;  }
-size_t getFsBytesTotal() { return fsBytesTotal; }
-
 /*
  * Structural requirements for files managed by writeObjectToFile() and readObjectFromFile() utilities:
  * 1. File must be a string representation of a valid JSON object
@@ -447,6 +437,11 @@ bool handleFileRead(AsyncWebServerRequest* request, String path){
     }
   }
   #endif
+
+  #ifdef CONFIG_IDF_TARGET_ESP32C3
+  while (!BusManager::canAllShow()) yield(); // accessing FS causes glitches due to RMT issue on C3 TODO: remove this when fixed
+  #endif
+
   if(WLED_FS.exists(path) || WLED_FS.exists(path + ".gz")) {
     request->send(request->beginResponse(WLED_FS, path, {}, request->hasArg(F("download")), {}));
     return true;

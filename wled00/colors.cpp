@@ -144,10 +144,6 @@ uint32_t ColorFromPalette(const CRGBPalette16& pal, unsigned index, uint8_t brig
   return RGBW32(red1,green1,blue1,0);
 }
 
-// Runtime state private to this file - previously WLED_GLOBAL, a leftover from
-// when all state lived in one big extern block regardless of who used it.
-static byte lastRandomIndex = 0; // used to save last random color so the new one is not the same
-
 void setRandomColor(byte* rgb)
 {
   lastRandomIndex = get_random_wheel_index(lastRandomIndex);
@@ -667,8 +663,7 @@ void NeoGammaWLEDMethod::calcGammaTable(float gamma)
 
 uint8_t NeoGammaWLEDMethod::Correct(uint8_t value)
 {
-  if (!gammaCorrectCol) return value;
-  return gammaT[value];
+  return gammaT[value]; // gammaT[] uses unity mapping if gammaCorrectCol is false
 }
 
 uint32_t NeoGammaWLEDMethod::inverseGamma32(uint32_t color)

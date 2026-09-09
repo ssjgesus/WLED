@@ -1,7 +1,7 @@
-name: ESP32-P4 IP101 validation
+name: ESP32-P4 IP101 PARLIO firmware
 on:
   push:
-    branches: [esp32p4-ip101-ethernet]
+    branches: [esp32p4-ip101-parlio]
   workflow_dispatch:
 permissions:
   contents: read
@@ -45,11 +45,22 @@ jobs:
           cp .pio/build/esp32p4_ip101/bootloader.bin espconnect/bootloader-0x2000.bin
           cp .pio/build/esp32p4_ip101/partitions.bin espconnect/partitions-0x8000.bin
           cp .pio/build/esp32p4_ip101/firmware.bin espconnect/firmware-0x10000.bin
+      - name: Stage OTA firmware
+        run: |
+          mkdir -p ota
+          cp .pio/build/esp32p4_ip101/firmware.bin ota/WLED-ESP32-P4-IP101-PARLIO-OTA.bin
       - name: Upload ESPConnect flash files
         uses: actions/upload-artifact@v4
         with:
-          name: WLED-ESP32-P4-IP101-${{ github.sha }}
+          name: WLED-ESP32-P4-IP101-PARLIO-ESPConnect-${{ github.sha }}
           path: espconnect/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload OTA firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: WLED-ESP32-P4-IP101-PARLIO-OTA-${{ github.sha }}
+          path: ota/WLED-ESP32-P4-IP101-PARLIO-OTA.bin
           if-no-files-found: error
           retention-days: 30
       - name: Compile classic ESP32 regression target

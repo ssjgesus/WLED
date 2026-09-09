@@ -1,4 +1,0 @@
-{
-  "name": "wled-espnow",
-  "build": { "libArchive": false }
-}

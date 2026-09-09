@@ -165,24 +165,27 @@ void notify(byte callMode, bool followUp)
       s0++;
     }
     if (s > s0) buffer.noOfPackets += 1 + ((s - s0) * UDP_SEG_SIZE) / bufferSize; // set number of packets
-    auto err = wled::espNow.send(ESPNOW_BROADCAST_ADDRESS, reinterpret_cast<const uint8_t*>(&buffer), packetSize+3);
+    auto err = quickEspNow.send(ESPNOW_BROADCAST_ADDRESS, reinterpret_cast<const uint8_t*>(&buffer), packetSize+3);
     if (!err && s0 < s) {
       // send rest of the segments
       buffer.packet++;
       packetSize = 0;
+      // WARNING: this will only work for up to 3 messages (~17 segments) as QuickESPNOW only has a ring buffer capable of holding 3 queued messages
+      // to work around that limitation it is mandatory to utilize onDataSent() callback which should reduce number queued messages
+      // and wait until at least one space is available in the buffer
       for (size_t i = s0; i < s; i++) {
         memcpy(buffer.data + packetSize, &udpOut[41+i*UDP_SEG_SIZE], UDP_SEG_SIZE);
         packetSize += UDP_SEG_SIZE;
         if (packetSize + UDP_SEG_SIZE < bufferSize) continue;
         DEBUG_PRINTF_P(PSTR("ESP-NOW sending packet: %d (%u)\n"), (int)buffer.packet, packetSize+3);
-        err = wled::espNow.send(ESPNOW_BROADCAST_ADDRESS, reinterpret_cast<const uint8_t*>(&buffer), packetSize+3);
+        err = quickEspNow.send(ESPNOW_BROADCAST_ADDRESS, reinterpret_cast<const uint8_t*>(&buffer), packetSize+3);
         buffer.packet++;
         packetSize = 0;
         if (err) break;
       }
       if (!err && packetSize > 0) {
         DEBUG_PRINTF_P(PSTR("ESP-NOW sending last packet: %d (%d)\n"), (int)buffer.packet, packetSize+3);
-        err = wled::espNow.send(ESPNOW_BROADCAST_ADDRESS, reinterpret_cast<const uint8_t*>(&buffer), packetSize+3);
+        err = quickEspNow.send(ESPNOW_BROADCAST_ADDRESS, reinterpret_cast<const uint8_t*>(&buffer), packetSize+3);
       }
     }
     if (err) {
@@ -430,6 +433,11 @@ void realtimeLock(uint32_t timeoutMs, byte md)
     realtimeTimeout = (timeoutMs == 255001 || timeoutMs == 65000) ? UINT32_MAX : millis() + timeoutMs;
   }
   realtimeMode = md;
+  // switch gamma table to unity when realtime mode disables gamma correction, restore otherwise
+  if (arlsDisableGammaCorrection && md != REALTIME_MODE_INACTIVE)
+    NeoGammaWLEDMethod::calcGammaTable(1.0f);
+  else
+    NeoGammaWLEDMethod::calcGammaTable(gammaCorrectVal);
 
   if (realtimeOverride) return;
   if (arlsForceMaxBri) strip.setBrightness(255, true);
@@ -442,6 +450,7 @@ void exitRealtime() {
   strip.setBrightness(bri, true);
   realtimeTimeout = 0; // cancel realtime mode immediately
   realtimeMode = REALTIME_MODE_INACTIVE; // inform UI immediately
+  NeoGammaWLEDMethod::calcGammaTable(gammaCorrectVal); // restore gamma table after realtime mode
   realtimeIP[0] = 0;
   if (useMainSegmentOnly) { // unfreeze live segment again
     strip.getMainSegment().freeze = false;
