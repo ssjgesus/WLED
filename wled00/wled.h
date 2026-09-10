@@ -374,12 +374,20 @@ WLED_GLOBAL uint8_t txPower _INIT(WIFI_POWER_19_5dBm);  // ToDO: change to int8_
 #define WLED_WIFI_CONFIGURED isWiFiConfigured()
 
 #if defined(ARDUINO_ARCH_ESP32) && defined(WLED_USE_ETHERNET)
-  #ifdef WLED_ETH_DEFAULT                                          // default ethernet board type if specified
-    WLED_GLOBAL int ethernetType _INIT(WLED_ETH_DEFAULT);          // ethernet board type
-  #else
-    WLED_GLOBAL int ethernetType _INIT(WLED_ETH_NONE);             // use none for ethernet board type if default not defined
+    #ifdef WLED_ETH_DEFAULT                                          // default ethernet board type if specified
+      WLED_GLOBAL int ethernetType _INIT(WLED_ETH_DEFAULT);          // ethernet board type
+    #else
+      WLED_GLOBAL int ethernetType _INIT(WLED_ETH_NONE);             // use none for ethernet board type if default not defined
+    #endif
+    // Ethernet-only mode can be selected from the network settings page. The
+    // P4 IP101 profile still forces this on at compile time because its build
+    // intentionally omits the hosted Wi-Fi startup path.
+    #if defined(WLED_USE_ETHERNET_ONLY)
+      WLED_GLOBAL bool ethernetOnly _INIT(true);
+    #else
+      WLED_GLOBAL bool ethernetOnly _INIT(false);
+    #endif
   #endif
-#endif
 
 // LED CONFIG
 WLED_GLOBAL bool turnOnAtBoot _INIT(true);                // turn on LEDs at power-up

@@ -374,6 +374,9 @@ int findWiFi(bool doScan) {
 #ifdef WLED_USE_ETHERNET_ONLY
   return 0;
 #endif
+#if defined(WLED_USE_ETHERNET) && !defined(WLED_USE_ETHERNET_ONLY)
+  if (ethernetOnly) return 0;
+#endif
   if (multiWiFi.size() <= 1) {
     DEBUG_PRINTF_P(PSTR("WiFi: Default SSID (%s) used.\n"), multiWiFi[0].clientSSID);
     return 0;
@@ -531,7 +534,7 @@ void WiFiEvent(WiFiEvent_t event)
       {
       DEBUG_PRINTLN(F("ETH-E: Connected"));
 #ifndef WLED_USE_ETHERNET_ONLY
-      if (!apActive) {
+      if (ethernetOnly && !apActive) {
         WiFi.disconnect(true); // disable WiFi entirely
       }
 #endif
@@ -549,7 +552,7 @@ void WiFiEvent(WiFiEvent_t event)
       // ethernet disconnects, as a way to provide
       // alternative access to the device.
 #ifndef WLED_USE_ETHERNET_ONLY
-      if (interfacesInited && WiFi.scanComplete() >= 0) findWiFi(true); // reinit WiFi scan
+      if (!ethernetOnly && interfacesInited && WiFi.scanComplete() >= 0) findWiFi(true); // reinit WiFi scan
 #endif
       forceReconnect = true;
       break;

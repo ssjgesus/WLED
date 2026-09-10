@@ -163,6 +163,15 @@ void handleSettingsSet(AsyncWebServerRequest *request, byte subPage)
 
     #if defined(ARDUINO_ARCH_ESP32) && defined(WLED_USE_ETHERNET)
     ethernetType = request->arg(F("ETH")).toInt();
+    bool oldEthernetOnly = ethernetOnly;
+    ethernetOnly = request->hasArg(F("ETHO"));
+    #if defined(WLED_USE_ETHERNET_ONLY)
+      ethernetOnly = true;
+    #endif
+    if (oldEthernetOnly != ethernetOnly) {
+      forceReconnect = true;
+      doReboot = true; // Wi-Fi/ESP-Hosted startup mode is selected during boot.
+    }
     initEthernet();
     #endif
   }

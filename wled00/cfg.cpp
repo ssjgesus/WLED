@@ -135,6 +135,10 @@ bool deserializeConfig(JsonObject doc, bool fromFS) {
 #ifdef WLED_USE_ETHERNET
   JsonObject ethernet = doc[F("eth")];
   CJSON(ethernetType, ethernet["type"]);
+  CJSON(ethernetOnly, ethernet["only"]);
+  #if defined(WLED_USE_ETHERNET_ONLY)
+    ethernetOnly = true;
+  #endif
   // NOTE: Ethernet configuration takes priority over other use of pins
   initEthernet();
 #endif
@@ -971,6 +975,7 @@ void serializeConfig(JsonObject root) {
 #if defined(ARDUINO_ARCH_ESP32) && defined(WLED_USE_ETHERNET)
   JsonObject ethernet = root.createNestedObject("eth");
   ethernet["type"] = ethernetType;
+  ethernet["only"] = ethernetOnly;
   if (ethernetType != WLED_ETH_NONE && ethernetType < WLED_NUM_ETH_TYPES) {
     JsonArray pins = ethernet.createNestedArray("pin");
     for (unsigned p=0; p<WLED_ETH_RSVD_PINS_COUNT; p++) pins.add(esp32_nonconfigurable_ethernet_pins[p].pin);
